@@ -89,9 +89,13 @@ namespace extraAdminREST
               TShock.RestApi.Register(new SecureRestCommand("/AdminREST/userlist", UserList, "AdminRest.allow"));
               TShock.RestApi.Register(new SecureRestCommand("/AdminREST/getInventory", getInventory, "AdminRest.allow"));
  
+// stuff augmented from TShock RestApi
+
+//  
             FileTools.SetupConfig();
   
         }
+
         private object Broadcast(RestRequestArgs args)
         {
             if (string.IsNullOrWhiteSpace(args.Parameters["msg"]))
@@ -200,7 +204,21 @@ namespace extraAdminREST
 
         }
 
-        private object BanList(RestRequestArgs args)
+        public static RestObject BanList(RestRequestArgs args)
+        {
+
+            string searchString = args.Parameters["where"];
+
+//            if (searchString == null)
+//                return RestError("Missing or empty search string - /AdminREST/banlist where=<where clause>~");
+
+            List<Ban> banList = FindBans(searchString, true);
+
+            return new RestObject() { { "bans", banList } };
+
+        }
+
+        private object BanListx(RestRequestArgs args)
         {
             var banList = new ArrayList();
             foreach (var ban in TShock.Bans.GetBans())
@@ -340,7 +358,7 @@ namespace extraAdminREST
 				{"nickname", player.Name},
 				{"username", null == player.UserAccountName ? "" : player.UserAccountName},
 				{"group", player.Group.Name},
-				{"inventory", string.Join(", ", inventory.Select(p => (p.name + ":" + p.stack)))},
+				{"inventory", string.Join(", ", inventory.Select(p => (p.name + ":" + p.stack + ":" + p.prefix)))},
 				{"armor", string.Join(", ", equipment.Select(p => (p.netID + ":" + p.prefix)))},
 				{"haircolor", player.TPlayer.hairColor},
 				{"skincolor", player.TPlayer.skinColor},
@@ -677,37 +695,7 @@ namespace extraAdminREST
             return user;
         }
 
-        private object BanFind(IParameterCollection parameters)
-        {
-            string name = parameters["ban"];
-            if (string.IsNullOrWhiteSpace(name))
-                return RestMissingParam("ban");
-
-            string type = parameters["type"];
-            if (string.IsNullOrWhiteSpace(type))
-                return RestMissingParam("type");
-
-            Ban ban;
-            switch (type)
-            {
-                case "ip":
-                    ban = TShock.Bans.GetBanByIp(name);
-                    break;
-                case "name":
-                    ban = TShock.Bans.GetBanByName(name, GetBool(parameters["caseinsensitive"], true));
-                    break;
-                default:
-
-                    return RestError("Invalid Type: '" + type + "'");
-            }
-
-            if (null == ban)
-                return RestError("Ban " + type + " '" + name + "' doesn't exist");
-
-            return ban;
-        }
-
-        private object GroupFind(IParameterCollection parameters)
+         private object GroupFind(IParameterCollection parameters)
         {
             var name = parameters["group"];
             if (string.IsNullOrWhiteSpace(name))
@@ -726,6 +714,7 @@ namespace extraAdminREST
 				{
 					{"nickname", tsPlayer.Name},
 					{"index", tsPlayer.Index},
+					{"ip", tsPlayer.IP},
 					{"username", tsPlayer.UserAccountName ?? ""},
 					{"account", tsPlayer.UserID},
 					{"group", tsPlayer.Group.Name},
@@ -747,6 +736,38 @@ namespace extraAdminREST
         }
 
         #endregion
+
+        /// <summary>
+        /// Gets a list of Users from db.
+        /// </summary>
+        private static List<Ban> FindBans(string search, bool casesensitive = true)
+        {
+            Ban rec = null;
+            String sql;
+            List<Ban> BanList = new List<Ban>();
+
+            try
+            {
+                sql = "SELECT * FROM Bans " + search + " order by Name";
+                using (var reader = TShock.DB.QueryReader(sql))
+                {
+                    while (reader.Read())
+                    {
+                        rec = new Ban(reader.Get<string>("Name"), reader.Get<string>("IP"), reader.Get<string>("Reason"),  reader.Get<string>("BanningUser"), reader.Get<string>("Date"), reader.Get<string>("Expiration"));
+                        BanList.Add(rec);
+                    }
+                }
+
+                return BanList;
+
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex.ToString());
+                Console.WriteLine(ex.StackTrace);
+            }
+            return null;
+        }
 
         /// <summary>
         /// Gets a list of Users from db.
@@ -1006,6 +1027,35 @@ namespace extraAdminREST
             LastAccessed = string.Empty;
             KnownIPs = string.Empty;
             InventoryCount = 0;
+        }
+    }
+    public class Ban
+    {
+        public string Name { get; set; }
+        public string IP { get; set; }
+        public string Reason { get; set; }
+        public string BanningUser { get; set; }
+        public string Date { get; set; }
+        public string Expiration { get; set; }
+
+        public Ban(string name, string ip, string reason, string banningUser, string date, string expiration)
+        {
+            Name = name;
+            IP = ip;
+            Reason = reason;
+            BanningUser = banningUser;
+            Date = date;
+            Expiration = expiration;
+        }
+
+        public Ban()
+        {
+            Name = "";
+            IP = "";
+            Reason = "";
+            BanningUser = "";
+            Date = "";
+            Expiration = "";
         }
     }
 }

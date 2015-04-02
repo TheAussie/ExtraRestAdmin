@@ -33,3 +33,9 @@ DLL
 
 # Debug files
 *.dSYM/
+TemplatePlugin/bin/Release/HttpServer.dll
+TemplatePlugin/bin/Release/Mono.Data.Sqlite.dll
+TemplatePlugin/bin/Release/Newtonsoft.Json.dll
+TemplatePlugin/bin/Release/TShockAPI.dll
+TemplatePlugin/bin/Release/MySql.Data.dll
+TemplatePlugin/bin/Release/ExtraAdminRESTAPI.pdb
