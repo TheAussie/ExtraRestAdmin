@@ -86,6 +86,7 @@ namespace extraAdminREST
               TShock.RestApi.Register(new SecureRestCommand("/AdminREST/updateConfig", updateConfig, "AdminRest.config"));
               TShock.RestApi.Register(new SecureRestCommand("/AdminREST/searchusers", searchUsers, "AdminRest.allow"));
               TShock.RestApi.Register(new SecureRestCommand("/AdminREST/updateInventory", updateInventory, "AdminRest.allow"));
+              TShock.RestApi.Register(new SecureRestCommand("/AdminREST/updateSSCAccount", updateSSCAccount, "AdminRest.allow"));
               TShock.RestApi.Register(new SecureRestCommand("/AdminREST/userlist", UserList, "AdminRest.allow"));
               TShock.RestApi.Register(new SecureRestCommand("/AdminREST/getInventory", getInventory, "AdminRest.allow"));
  
@@ -545,6 +546,37 @@ namespace extraAdminREST
 
         }
 
+       public static RestObject updateSSCAccount(RestRequestArgs args)
+       {
+           if (string.IsNullOrWhiteSpace(args.Parameters["account"]))
+               return new RestObject("400") { Response = "Invalid account." };
+           int userId = Convert.ToInt32(args.Parameters["account"]);
+           if (userId <= 0)
+           {
+               return new RestObject("400") { Response = "Invalid account." };
+           }
+
+           if (string.IsNullOrWhiteSpace(args.Parameters["update"]))
+               return RestMissingParam("update");
+           string update = Convert.ToString(args.Parameters["update"]);
+           if (update == null)
+           {
+               return new RestObject("400") { Response = "Invalid update." };
+           }
+
+           TShockAPI.DB.User user = TShock.Users.GetUserByID(userId);
+           foreach (var player in TShock.Players.Where(p => null != p && p.UserAccountName == user.Name))
+           {
+               return new RestObject("400") { Response = "Player active, Account may not be changed." };
+           }
+
+           bool ok = ModifySSCAccount(userId, update);
+           if (ok)
+               return new RestObject { { "update", "Successful" } };
+           else
+               return new RestObject("400") { Response = "Update failure." };
+
+       }
        public static RestObject getVersion(RestRequestArgs args)
         {
             String dbType;
@@ -763,7 +795,7 @@ namespace extraAdminREST
             }
             catch (Exception ex)
             {
-                Log.Error(ex.ToString());
+                TShock.Log.Error(ex.ToString());
                 Console.WriteLine(ex.StackTrace);
             }
             return null;
@@ -809,7 +841,7 @@ namespace extraAdminREST
             } 
             catch (Exception ex)
             {
-                Log.Error(ex.ToString());
+                TShock.Log.Error(ex.ToString());
                 Console.WriteLine(ex.StackTrace);
             }
             return null;
@@ -842,14 +874,12 @@ namespace extraAdminREST
             }
             catch (Exception ex)
             {
-                Log.Error(ex.ToString());
+                TShock.Log.Error(ex.ToString());
                 Console.WriteLine(ex.StackTrace);
             }
             return null;
         }
 
-        /// <summary>
-        /// Gets a list of SSCInventoryLog entries.
         /// </summary>
         public static bool ModifySSCInventory(int account, string inventory)
         {
@@ -865,7 +895,7 @@ namespace extraAdminREST
                     }
                     catch (Exception ex)
                     {
-                        Log.Error(ex.ToString());
+                        TShock.Log.Error(ex.ToString());
                         Console.WriteLine(ex.StackTrace);
                         return false;
                     }
@@ -873,13 +903,31 @@ namespace extraAdminREST
             }
             catch (Exception ex)
             {
-                Log.Error(ex.ToString());
+                TShock.Log.Error(ex.ToString());
                 Console.WriteLine(ex.StackTrace);
                 return false;
             }
             return true;
         }
 
+
+        /// </summary>
+        public static bool ModifySSCAccount(int account, string update)
+        {
+            try
+            {
+                using (var reader = TShock.DB.QueryReader(update + " where account =@0", account))
+                {
+                }
+            }
+            catch (Exception ex)
+            {
+                TShock.Log.Error(ex.ToString());
+                Console.WriteLine(ex.StackTrace);
+                return false;
+            }
+            return true;
+        }
 
 
 
@@ -972,7 +1020,7 @@ namespace extraAdminREST
             PantsColor = pantscolor;
             ShirtColor = shirtcolor;
             UnderShirtColor = undershirtcolor;
-            ShoeColor = haircolor;
+            ShoeColor = shoecolor;
             SkinColor = skincolor;
             EyeColor = eyecolor;
         }
