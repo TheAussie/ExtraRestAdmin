@@ -44,7 +44,7 @@ namespace extraAdminREST
     {
         public static string SavePath = "tshock";
         public static IDbConnection DB;
-  
+
         public override Version Version
         {
             get { return Assembly.GetExecutingAssembly().GetName().Version; }
@@ -69,32 +69,33 @@ namespace extraAdminREST
 
         public override void Initialize()
         {
-                TShock.RestApi.Register(new SecureRestCommand("/AdminREST/version", getVersion, "AdminRest.allow"));          
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/version", getVersion, "AdminRest.allow"));
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/ConsoleInfo", ConsoleInfo, "AdminRest.allow"));
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/Broadcast", Broadcast, "AdminRest.allow"));
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/Chat", Chat, "AdminRest.allow"));
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/getPlayerData", getPlayerData, "AdminRest.allow"));
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/GroupList", GroupList, "AdminRest.allow"));
-              TShock.RestApi.Register(new SecureRestCommand("/AdminREST/PlayerList", PlayerList, "AdminRest.allow"));
-              TShock.RestApi.Register(new SecureRestCommand("/AdminREST/BanList", BanList, "AdminRest.allow"));
-              TShock.RestApi.Register(new SecureRestCommand("/AdminREST/WorldInfo", WorldInfo, "AdminRest.allow"));
-              TShock.RestApi.Register(new SecureRestCommand("/AdminREST/GroupInfo", GroupInfo, "AdminRest.allow"));
-              TShock.RestApi.Register(new SecureRestCommand("/AdminREST/serverInfo", serverInfo, "AdminRest.allow"));
-              TShock.RestApi.Register(new SecureRestCommand("/AdminREST/getLog", getLog, "AdminRest.allow"));
-              TShock.RestApi.Register(new SecureRestCommand("/AdminREST/updateMOTD", updateMOTD, "AdminRest.allow"));
-              TShock.RestApi.Register(new SecureRestCommand("/AdminREST/getConfig", getConfig, "AdminRest.config"));
-              TShock.RestApi.Register(new SecureRestCommand("/AdminREST/getConfigDescription", getConfigDescription, "AdminRest.config"));
-              TShock.RestApi.Register(new SecureRestCommand("/AdminREST/updateConfig", updateConfig, "AdminRest.config"));
-              TShock.RestApi.Register(new SecureRestCommand("/AdminREST/searchusers", searchUsers, "AdminRest.allow"));
-              TShock.RestApi.Register(new SecureRestCommand("/AdminREST/updateInventory", updateInventory, "AdminRest.allow"));
-              TShock.RestApi.Register(new SecureRestCommand("/AdminREST/updateSSCAccount", updateSSCAccount, "AdminRest.allow"));
-              TShock.RestApi.Register(new SecureRestCommand("/AdminREST/userlist", UserList, "AdminRest.allow"));
-              TShock.RestApi.Register(new SecureRestCommand("/AdminREST/getInventory", getInventory, "AdminRest.allow"));
- 
-// stuff augmented from TShock RestApi
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/PlayerList", PlayerList, "AdminRest.allow"));
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/BanList", BanList, "AdminRest.allow"));
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/WorldInfo", WorldInfo, "AdminRest.allow"));
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/GroupInfo", GroupInfo, "AdminRest.allow"));
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/serverInfo", serverInfo, "AdminRest.allow"));
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/getLog", getLog, "AdminRest.allow"));
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/updateMOTD", updateMOTD, "AdminRest.allow"));
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/getConfig", getConfig, "AdminRest.config"));
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/getConfigDescription", getConfigDescription, "AdminRest.config"));
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/updateConfig", updateConfig, "AdminRest.config"));
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/searchusers", searchUsers, "AdminRest.allow"));
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/updateInventory", updateInventory, "AdminRest.allow"));
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/updateSSCAccount", updateSSCAccount, "AdminRest.allow"));
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/userlist", UserList, "AdminRest.allow"));
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/getInventory", getInventory, "AdminRest.allow"));
 
-//  
+            // stuff augmented from TShock RestApi
+
+            //  
             FileTools.SetupConfig();
-  
+
         }
 
         private object Broadcast(RestRequestArgs args)
@@ -108,16 +109,35 @@ namespace extraAdminREST
                   Convert.ToByte(TShock.Config.BroadcastRGB[0]), Convert.ToByte(TShock.Config.BroadcastRGB[1]),
                   Convert.ToByte(TShock.Config.BroadcastRGB[2]));
             return RestResponse("Message delievered.");
-//            return RestResponse("Message delieveredóú.");
         }
-
-       private object ConsoleInfo(RestRequestArgs args)
+ 
+               private object Chat(RestRequestArgs args)
         {
             if (string.IsNullOrWhiteSpace(args.Parameters["msg"]))
                 return RestMissingParam("msg");
             String message = args.Parameters["msg"];
+
+            if (string.IsNullOrWhiteSpace(args.Parameters["index"]))
+                return RestMissingParam("index");
+            int player = Int32.Parse(args.Parameters["index"]);
+            var tsplr = TShockAPI.TShock.Players[player];
+             if (tsplr == null)
+            {
+                return RestError("Player was not found");
+            }
+                   var text = String.Format(TShock.Config.ChatFormat, tsplr.Group.Name, tsplr.Group.Prefix, tsplr.Name, tsplr.Group.Suffix, message);
+            TShock.Utils.Broadcast(text, tsplr.Group.R, tsplr.Group.G, tsplr.Group.B);
+            return RestResponse("Message delievered.");
+        }
  
-            TShockAPI.Log.ConsoleInfo(message);
+ 
+        private object ConsoleInfo(RestRequestArgs args)
+        {
+            if (string.IsNullOrWhiteSpace(args.Parameters["msg"]))
+                return RestMissingParam("msg");
+            String message = args.Parameters["msg"];
+
+            TShock.Log.ConsoleInfo(message);
             return RestResponse("Message delievered.");
         }
 
@@ -137,71 +157,71 @@ namespace extraAdminREST
 
         private object WorldInfo(RestRequestArgs args)
         {
-      				var msg = new TShockAPI.Net.WorldInfoMsg
-				{
-					Time = (int)Main.time,
-					DayTime = Main.dayTime,
-					MoonPhase = (byte)Main.moonPhase,
-					BloodMoon = Main.bloodMoon,
-					Eclipse = Main.eclipse,
-					MaxTilesX = (short)Main.maxTilesX,
-					MaxTilesY = (short)Main.maxTilesY,
-					SpawnX = (short)Main.spawnTileX,
-					SpawnY = (short)Main.spawnTileY,
-					WorldSurface = (short)Main.worldSurface,
-					RockLayer = (short)Main.rockLayer,
-					//Sending a fake world id causes the client to not be able to find a stored spawnx/y.
-					//This fixes the bed spawn point bug. With a fake world id it wont be able to find the bed spawn.
-					WorldID = Main.worldID,
-					MoonType = (byte)Main.moonType,
-					TreeX0 = Main.treeX[0],
-					TreeX1 = Main.treeX[1],
-					TreeX2 = Main.treeX[2],
-					TreeStyle0 = (byte)Main.treeStyle[0],
-					TreeStyle1 = (byte)Main.treeStyle[1],
-					TreeStyle2 = (byte)Main.treeStyle[2],
-					TreeStyle3 = (byte)Main.treeStyle[3],
-					CaveBackX0 = Main.caveBackX[0],
-					CaveBackX1 = Main.caveBackX[1],
-					CaveBackX2 = Main.caveBackX[2],
-					CaveBackStyle0 = (byte)Main.caveBackStyle[0],
-					CaveBackStyle1 = (byte)Main.caveBackStyle[1],
-					CaveBackStyle2 = (byte)Main.caveBackStyle[2],
-					CaveBackStyle3 = (byte)Main.caveBackStyle[3],
-					SetBG0 = (byte)WorldGen.treeBG,
-					SetBG1 = (byte)WorldGen.corruptBG,
-					SetBG2 = (byte)WorldGen.jungleBG,
-					SetBG3 = (byte)WorldGen.snowBG,
-					SetBG4 = (byte)WorldGen.hallowBG,
-					SetBG5 = (byte)WorldGen.crimsonBG,
-					SetBG6 = (byte)WorldGen.desertBG,
-					SetBG7 = (byte)WorldGen.oceanBG,
-					IceBackStyle = (byte)Main.iceBackStyle,
-					JungleBackStyle = (byte)Main.jungleBackStyle,
-					HellBackStyle = (byte)Main.hellBackStyle,
-					WindSpeed = Main.windSpeed,
-					NumberOfClouds = (byte)Main.numClouds,
-                    BossFlags = (WorldGen.shadowOrbSmashed ? TShockAPI.Net.BossFlags.OrbSmashed : TShockAPI.Net.BossFlags.None) |
-                                (NPC.downedBoss1 ? TShockAPI.Net.BossFlags.DownedBoss1 : TShockAPI.Net.BossFlags.None) |
-                                (NPC.downedBoss2 ? TShockAPI.Net.BossFlags.DownedBoss2 : TShockAPI.Net.BossFlags.None) |
-                                (NPC.downedBoss3 ? TShockAPI.Net.BossFlags.DownedBoss3 : TShockAPI.Net.BossFlags.None) |
-                                (Main.hardMode ? TShockAPI.Net.BossFlags.HardMode : TShockAPI.Net.BossFlags.None) |
-                                (NPC.downedClown ? TShockAPI.Net.BossFlags.DownedClown : TShockAPI.Net.BossFlags.None) |
-                                (Main.ServerSideCharacter ? TShockAPI.Net.BossFlags.ServerSideCharacter : TShockAPI.Net.BossFlags.None) |
-                                (NPC.downedPlantBoss ? TShockAPI.Net.BossFlags.DownedPlantBoss : TShockAPI.Net.BossFlags.None),
-                    BossFlags2 = (NPC.downedMechBoss1 ? TShockAPI.Net.BossFlags2.DownedMechBoss1 : TShockAPI.Net.BossFlags2.None) |
-                                 (NPC.downedMechBoss2 ? TShockAPI.Net.BossFlags2.DownedMechBoss2 : TShockAPI.Net.BossFlags2.None) |
-                                 (NPC.downedMechBoss3 ? TShockAPI.Net.BossFlags2.DownedMechBoss3 : TShockAPI.Net.BossFlags2.None) |
-                                 (NPC.downedMechBossAny ? TShockAPI.Net.BossFlags2.DownedMechBossAny : TShockAPI.Net.BossFlags2.None) |
-                                 (Main.cloudBGActive == 1f ? TShockAPI.Net.BossFlags2.CloudBg : TShockAPI.Net.BossFlags2.None) |
-                                 (WorldGen.crimson ? TShockAPI.Net.BossFlags2.Crimson : TShockAPI.Net.BossFlags2.None) |
-                                 (Main.pumpkinMoon ? TShockAPI.Net.BossFlags2.PumpkinMoon : TShockAPI.Net.BossFlags2.None),
-					Rain = Main.maxRaining,
-					WorldName = TShock.Config.UseServerName ? TShock.Config.ServerName : Main.worldName
-                };
-                    Console.Write(msg.BloodMoon);
-                    Console.Write(msg.DayTime);
-                    return new RestObject() { { "bloodmoon", msg.BloodMoon } };
+            var msg = new TShockAPI.Net.WorldInfoMsg
+        {
+            Time = (int)Main.time,
+            DayTime = Main.dayTime,
+            MoonPhase = (byte)Main.moonPhase,
+            BloodMoon = Main.bloodMoon,
+            Eclipse = Main.eclipse,
+            MaxTilesX = (short)Main.maxTilesX,
+            MaxTilesY = (short)Main.maxTilesY,
+            SpawnX = (short)Main.spawnTileX,
+            SpawnY = (short)Main.spawnTileY,
+            WorldSurface = (short)Main.worldSurface,
+            RockLayer = (short)Main.rockLayer,
+            //Sending a fake world id causes the client to not be able to find a stored spawnx/y.
+            //This fixes the bed spawn point bug. With a fake world id it wont be able to find the bed spawn.
+            WorldID = Main.worldID,
+            MoonType = (byte)Main.moonType,
+            TreeX0 = Main.treeX[0],
+            TreeX1 = Main.treeX[1],
+            TreeX2 = Main.treeX[2],
+            TreeStyle0 = (byte)Main.treeStyle[0],
+            TreeStyle1 = (byte)Main.treeStyle[1],
+            TreeStyle2 = (byte)Main.treeStyle[2],
+            TreeStyle3 = (byte)Main.treeStyle[3],
+            CaveBackX0 = Main.caveBackX[0],
+            CaveBackX1 = Main.caveBackX[1],
+            CaveBackX2 = Main.caveBackX[2],
+            CaveBackStyle0 = (byte)Main.caveBackStyle[0],
+            CaveBackStyle1 = (byte)Main.caveBackStyle[1],
+            CaveBackStyle2 = (byte)Main.caveBackStyle[2],
+            CaveBackStyle3 = (byte)Main.caveBackStyle[3],
+            SetBG0 = (byte)WorldGen.treeBG,
+            SetBG1 = (byte)WorldGen.corruptBG,
+            SetBG2 = (byte)WorldGen.jungleBG,
+            SetBG3 = (byte)WorldGen.snowBG,
+            SetBG4 = (byte)WorldGen.hallowBG,
+            SetBG5 = (byte)WorldGen.crimsonBG,
+            SetBG6 = (byte)WorldGen.desertBG,
+            SetBG7 = (byte)WorldGen.oceanBG,
+            IceBackStyle = (byte)Main.iceBackStyle,
+            JungleBackStyle = (byte)Main.jungleBackStyle,
+            HellBackStyle = (byte)Main.hellBackStyle,
+            WindSpeed = Main.windSpeed,
+            NumberOfClouds = (byte)Main.numClouds,
+            BossFlags = (WorldGen.shadowOrbSmashed ? TShockAPI.Net.BossFlags.OrbSmashed : TShockAPI.Net.BossFlags.None) |
+                        (NPC.downedBoss1 ? TShockAPI.Net.BossFlags.DownedBoss1 : TShockAPI.Net.BossFlags.None) |
+                        (NPC.downedBoss2 ? TShockAPI.Net.BossFlags.DownedBoss2 : TShockAPI.Net.BossFlags.None) |
+                        (NPC.downedBoss3 ? TShockAPI.Net.BossFlags.DownedBoss3 : TShockAPI.Net.BossFlags.None) |
+                        (Main.hardMode ? TShockAPI.Net.BossFlags.HardMode : TShockAPI.Net.BossFlags.None) |
+                        (NPC.downedClown ? TShockAPI.Net.BossFlags.DownedClown : TShockAPI.Net.BossFlags.None) |
+                        (Main.ServerSideCharacter ? TShockAPI.Net.BossFlags.ServerSideCharacter : TShockAPI.Net.BossFlags.None) |
+                        (NPC.downedPlantBoss ? TShockAPI.Net.BossFlags.DownedPlantBoss : TShockAPI.Net.BossFlags.None),
+            BossFlags2 = (NPC.downedMechBoss1 ? TShockAPI.Net.BossFlags2.DownedMechBoss1 : TShockAPI.Net.BossFlags2.None) |
+                         (NPC.downedMechBoss2 ? TShockAPI.Net.BossFlags2.DownedMechBoss2 : TShockAPI.Net.BossFlags2.None) |
+                         (NPC.downedMechBoss3 ? TShockAPI.Net.BossFlags2.DownedMechBoss3 : TShockAPI.Net.BossFlags2.None) |
+                         (NPC.downedMechBossAny ? TShockAPI.Net.BossFlags2.DownedMechBossAny : TShockAPI.Net.BossFlags2.None) |
+                         (Main.cloudBGActive == 1f ? TShockAPI.Net.BossFlags2.CloudBg : TShockAPI.Net.BossFlags2.None) |
+                         (WorldGen.crimson ? TShockAPI.Net.BossFlags2.Crimson : TShockAPI.Net.BossFlags2.None) |
+                         (Main.pumpkinMoon ? TShockAPI.Net.BossFlags2.PumpkinMoon : TShockAPI.Net.BossFlags2.None),
+            Rain = Main.maxRaining,
+            WorldName = TShock.Config.UseServerName ? TShock.Config.ServerName : Main.worldName
+        };
+            Console.Write(msg.BloodMoon);
+            Console.Write(msg.DayTime);
+            return new RestObject() { { "bloodmoon", msg.BloodMoon } };
 
         }
 
@@ -210,8 +230,8 @@ namespace extraAdminREST
 
             string searchString = args.Parameters["where"];
 
-//            if (searchString == null)
-//                return RestError("Missing or empty search string - /AdminREST/banlist where=<where clause>~");
+            //            if (searchString == null)
+            //                return RestError("Missing or empty search string - /AdminREST/banlist where=<where clause>~");
 
             List<Ban> banList = FindBans(searchString, true);
 
@@ -230,11 +250,12 @@ namespace extraAdminREST
                     TShockAPI.DB.User user = TShock.Users.GetUserByName(ban.Name);
                     userId = user.ID;
                 }
-                catch (NullReferenceException e) {
+                catch (NullReferenceException e)
+                {
                     userId = -1;
                 }
-                 banList.Add(
-                    new Dictionary<string, string>
+                banList.Add(
+                   new Dictionary<string, string>
 					{
 						{"name", null == ban.Name ? "" : ban.Name},
 						{"userid", String.Format("{0}", userId)},
@@ -244,9 +265,9 @@ namespace extraAdminREST
 						{"date", null == ban.Date ? "" : ban.Date},
 						{"expiration", null == ban.Expiration ? "" : ban.Expiration},
 					}
-                );
+               );
             }
-  
+
             return new RestObject() { { "bans", banList } };
         }
 
@@ -255,17 +276,26 @@ namespace extraAdminREST
             var groups = new ArrayList();
             foreach (TShockAPI.Group group in TShock.Groups)
             {
-                groups.Add(new Dictionary<string, object> { { "name", group.Name }, { "parent", group.ParentName }, { "chatcolor", group.ChatColor }, {"prefix", group.Prefix}, {"suffix", group.Suffix} });
+                groups.Add(new Dictionary<string, object> { 
+                { "name", group.Name }, 
+                { "parent", group.ParentName }, 
+ 				{"permissions", group.permissions},
+				{"negatedpermissions", group.negatedpermissions},
+				{"totalpermissions", group.TotalPermissions},
+               { "chatcolor", group.ChatColor }, 
+                { "prefix", group.Prefix }, 
+                { "suffix", group.Suffix } });
             }
+
             return new RestObject() { { "groups", groups } };
         }
 
 
         private object GroupInfo(RestRequestArgs args)
         {
-  		var ret = GroupFind(args.Parameters);
-			if (ret is RestObject)
-				return ret;
+            var ret = GroupFind(args.Parameters);
+            if (ret is RestObject)
+                return ret;
 
             TShockAPI.Group group = (TShockAPI.Group)ret;
             return new RestObject() {
@@ -282,11 +312,11 @@ namespace extraAdminREST
 
 
         private object getLog(RestRequestArgs args)
-       {
+        {
             if (string.IsNullOrWhiteSpace(args.Parameters["count"]))
                 return RestMissingParam("count");
             String lineCount = args.Parameters["count"];
- 
+
             var directory = new DirectoryInfo(TShock.Config.LogPath);
 
             String searchPattern = @"(19|20)\d\d[-](0[1-9]|1[012])[-](0[1-9]|[12][0-9]|3[01]).*.log";
@@ -343,7 +373,7 @@ namespace extraAdminREST
         }
         #endregion
 
-       private object getPlayerData(RestRequestArgs args)
+        private object getPlayerData(RestRequestArgs args)
         {
             var ret = PlayerFind(args.Parameters);
             if (ret is RestObject)
@@ -373,30 +403,30 @@ namespace extraAdminREST
 			};
         }
 
-       public static RestObject serverInfo(RestRequestArgs args)
+        public static RestObject serverInfo(RestRequestArgs args)
         {
 
             return new RestObject() { { "worldID", Main.worldID } };
 
         }
 
-       public static RestObject getConfigDescription(RestRequestArgs args)
+        public static RestObject getConfigDescription(RestRequestArgs args)
         {
             if (string.IsNullOrWhiteSpace(args.Parameters["configFile"]))
                 return new RestObject("400") { Response = "No config type given" };
-             String configFile = args.Parameters["configFile"];
+            String configFile = args.Parameters["configFile"];
             if (configFile == null)
             {
                 return new RestObject("400") { Response = "No config type given" };
             }
             DumpDescriptions((configFile.Equals("config.json")));
 
-             return new RestObject() { { "description", ConfigDescription } };
+            return new RestObject() { { "description", ConfigDescription } };
 
         }
 
 
-       public static RestObject getConfig(RestRequestArgs args)
+        public static RestObject getConfig(RestRequestArgs args)
         {
             if (string.IsNullOrWhiteSpace(args.Parameters["config"]))
                 return new RestObject("400") { Response = "No config given" };
@@ -430,7 +460,7 @@ namespace extraAdminREST
         }
 
 
-       public static RestObject updateConfig(RestRequestArgs args)
+        public static RestObject updateConfig(RestRequestArgs args)
         {
             if (string.IsNullOrWhiteSpace(args.Parameters["config"]))
                 return new RestObject("400") { Response = "No config given" };
@@ -475,7 +505,7 @@ namespace extraAdminREST
         }
 
 
-       public static RestObject updateMOTD(RestRequestArgs args)
+        public static RestObject updateMOTD(RestRequestArgs args)
         {
             if (string.IsNullOrWhiteSpace(args.Parameters["motd"]))
                 return new RestObject("400") { Response = "No text given" };
@@ -486,7 +516,7 @@ namespace extraAdminREST
             }
 
             String f = Path.Combine(TShock.SavePath, "motd.txt");
-  //          Console.WriteLine(f);
+            //          Console.WriteLine(f);
 
             if (File.Exists(f))
             {
@@ -499,22 +529,23 @@ namespace extraAdminREST
         }
 
 
-       private object getInventory(RestRequestArgs args)
+        private object getInventory(RestRequestArgs args)
         {
             if (string.IsNullOrWhiteSpace(args.Parameters["account"]))
                 return new RestObject("400") { Response = "Found no matches." };
             int account = Convert.ToInt32(args.Parameters["account"]);
             if (account <= 0)
             {
-                 return new RestObject("400") { Response = "Found no matches." };
+                return new RestObject("400") { Response = "Found no matches." };
             }
 
+            int index = Convert.ToInt32(args.Parameters["index"]);
             List<SSCInventory> inventory = GetSSCInventory(account);
-
+            
             return new RestObject { { "inventory", inventory } };
         }
 
-       public static RestObject updateInventory(RestRequestArgs args)
+        public static RestObject updateInventory(RestRequestArgs args)
         {
             if (string.IsNullOrWhiteSpace(args.Parameters["account"]))
                 return new RestObject("400") { Response = "Invalid account." };
@@ -529,7 +560,7 @@ namespace extraAdminREST
             string inventory = Convert.ToString(args.Parameters["inventory"]);
             if (inventory == null)
             {
-                  return new RestObject("400") { Response = "Invalid inventory." };
+                return new RestObject("400") { Response = "Invalid inventory." };
             }
 
             TShockAPI.DB.User user = TShock.Users.GetUserByID(userId);
@@ -537,8 +568,8 @@ namespace extraAdminREST
             {
                 return new RestObject("400") { Response = "Player active, inventory may not be changed." };
             }
- 
-           bool ok = ModifySSCInventory(userId, inventory);
+
+            bool ok = ModifySSCInventory(userId, inventory);
             if (ok)
                 return new RestObject { { "update", inventory } };
             else
@@ -546,38 +577,38 @@ namespace extraAdminREST
 
         }
 
-       public static RestObject updateSSCAccount(RestRequestArgs args)
-       {
-           if (string.IsNullOrWhiteSpace(args.Parameters["account"]))
-               return new RestObject("400") { Response = "Invalid account." };
-           int userId = Convert.ToInt32(args.Parameters["account"]);
-           if (userId <= 0)
-           {
-               return new RestObject("400") { Response = "Invalid account." };
-           }
+        public static RestObject updateSSCAccount(RestRequestArgs args)
+        {
+            if (string.IsNullOrWhiteSpace(args.Parameters["account"]))
+                return new RestObject("400") { Response = "Invalid account." };
+            int userId = Convert.ToInt32(args.Parameters["account"]);
+            if (userId <= 0)
+            {
+                return new RestObject("400") { Response = "Invalid account." };
+            }
 
-           if (string.IsNullOrWhiteSpace(args.Parameters["update"]))
-               return RestMissingParam("update");
-           string update = Convert.ToString(args.Parameters["update"]);
-           if (update == null)
-           {
-               return new RestObject("400") { Response = "Invalid update." };
-           }
+            if (string.IsNullOrWhiteSpace(args.Parameters["update"]))
+                return RestMissingParam("update");
+            string update = Convert.ToString(args.Parameters["update"]);
+            if (update == null)
+            {
+                return new RestObject("400") { Response = "Invalid update." };
+            }
 
-           TShockAPI.DB.User user = TShock.Users.GetUserByID(userId);
-           foreach (var player in TShock.Players.Where(p => null != p && p.UserAccountName == user.Name))
-           {
-               return new RestObject("400") { Response = "Player active, Account may not be changed." };
-           }
+            TShockAPI.DB.User user = TShock.Users.GetUserByID(userId);
+            foreach (var player in TShock.Players.Where(p => null != p && p.UserAccountName == user.Name))
+            {
+                return new RestObject("400") { Response = "Player active, Account may not be changed." };
+            }
 
-           bool ok = ModifySSCAccount(userId, update);
-           if (ok)
-               return new RestObject { { "update", "Successful" } };
-           else
-               return new RestObject("400") { Response = "Update failure." };
+            bool ok = ModifySSCAccount(userId, update);
+            if (ok)
+                return new RestObject { { "update", "Successful" } };
+            else
+                return new RestObject("400") { Response = "Update failure." };
 
-       }
-       public static RestObject getVersion(RestRequestArgs args)
+        }
+        public static RestObject getVersion(RestRequestArgs args)
         {
             String dbType;
             if (TShock.DB.GetSqlType() == SqlType.Sqlite)
@@ -589,14 +620,14 @@ namespace extraAdminREST
 				 { "version", Assembly.GetExecutingAssembly().GetName().Version.ToString() },
 				{ "db", dbType }
 			};
- 
+
         }
 
-       public static RestObject searchUsers(RestRequestArgs args)
+        public static RestObject searchUsers(RestRequestArgs args)
         {
 
-             string searchString = args.Parameters["where"];
- 
+            string searchString = args.Parameters["where"];
+
             if (searchString == null)
                 return RestError("Missing or empty search string - /AdminREST/searchusers where=<where clause>~");
 
@@ -627,7 +658,7 @@ namespace extraAdminREST
 
         }
 
-       protected override void Dispose(bool disposing)
+        protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
@@ -727,7 +758,7 @@ namespace extraAdminREST
             return user;
         }
 
-         private object GroupFind(IParameterCollection parameters)
+        private object GroupFind(IParameterCollection parameters)
         {
             var name = parameters["group"];
             if (string.IsNullOrWhiteSpace(name))
@@ -755,10 +786,6 @@ namespace extraAdminREST
 					{"team", tsPlayer.Team},
 				};
 
-            if (viewips)
-            {
-                player.Add("ip", tsPlayer.IP);
-            }
             foreach (IParameter filter in parameters)
             {
                 if (player.ContainsKey(filter.Name) && !player[filter.Name].Equals(filter.Value))
@@ -785,7 +812,7 @@ namespace extraAdminREST
                 {
                     while (reader.Read())
                     {
-                        rec = new Ban(reader.Get<string>("Name"), reader.Get<string>("IP"), reader.Get<string>("Reason"),  reader.Get<string>("BanningUser"), reader.Get<string>("Date"), reader.Get<string>("Expiration"));
+                        rec = new Ban(reader.Get<string>("Name"), reader.Get<string>("IP"), reader.Get<string>("Reason"), reader.Get<string>("BanningUser"), reader.Get<string>("Date"), reader.Get<string>("Expiration"));
                         BanList.Add(rec);
                     }
                 }
@@ -811,34 +838,34 @@ namespace extraAdminREST
             String sql;
             int hasInventory;
             List<UserList> UserList = new List<UserList>();
- 
-                        try
+
+            try
             {
                 sql = "SELECT * FROM Users " + search + " order by UserName";
- 
-                 using (var reader = TShock.DB.QueryReader(sql))
+
+                using (var reader = TShock.DB.QueryReader(sql))
                 {
                     while (reader.Read())
                     {
                         rec = new UserList(reader.Get<Int32>("Id"), reader.Get<string>("UserName"), reader.Get<string>("UserGroup"), reader.Get<string>("Registered"), reader.Get<string>("LastAccessed"), reader.Get<string>("KnownIPs"), 0);
                         id = rec.Id;
- 
-                 using (var counter = TShock.DB.QueryReader("SELECT count(*) as count FROM tsCharacter where account =@0", id))
-                {
-                    if (counter.Read())
-                    {
-                        hasInventory = counter.Get<Int32>("count");
-                        rec.InventoryCount = hasInventory;
+
+                        using (var counter = TShock.DB.QueryReader("SELECT count(*) as count FROM tsCharacter where account =@0", id))
+                        {
+                            if (counter.Read())
+                            {
+                                hasInventory = counter.Get<Int32>("count");
+                                rec.InventoryCount = hasInventory;
                             }
-                 }
+                        }
 
                         UserList.Add(rec);
                     }
                 }
-              
-                    return UserList;
-                
-            } 
+
+                return UserList;
+
+            }
             catch (Exception ex)
             {
                 TShock.Log.Error(ex.ToString());
@@ -850,24 +877,30 @@ namespace extraAdminREST
         /// <summary>
         /// Gets a list of SSCInventoryLog entries. 
         /// </summary>
-        public List<SSCInventory> GetSSCInventory(int account) 
+        public List<SSCInventory> GetSSCInventory(int account)
         {
-            SSCInventory rec; 
-            String sql;
-
+            SSCInventory rec;
             List<SSCInventory> SSCInventorylist = new List<SSCInventory>();
             try
             {
                 using (var reader = TShock.DB.QueryReader("SELECT * FROM tsCharacter where account =@0", account))
                 {
+                    bool isPlaying = false;
                     if (reader.Read())
                     {
-                        rec = new SSCInventory(reader.Get<Int32>("Account"), reader.Get<string>("Inventory"),
+                            TShockAPI.DB.User user = TShock.Users.GetUserByID(account);
+                            foreach (var player in TShock.Players.Where(p => null != p && p.UserAccountName == user.Name))
+                            {
+                                isPlaying = true;
+                            }
+
+                            rec = new SSCInventory(reader.Get<Int32>("Account"), reader.Get<Int32>("Health"), reader.Get<Int32>("MaxHealth"), reader.Get<Int32>("Mana"), reader.Get<Int32>("MaxMana"), reader.Get<Int32>("questscompleted"), 
+                                reader.Get<string>("Inventory"),
                            reader.Get<Int32>("hair"), reader.Get<Int32>("hairdye"), (Color)TShock.Utils.DecodeColor(reader.Get<Int32>("haircolor")),
                            (Color)TShock.Utils.DecodeColor(reader.Get<Int32>("pantscolor")), (Color)TShock.Utils.DecodeColor(reader.Get<Int32>("shirtcolor")), (Color)TShock.Utils.DecodeColor(reader.Get<Int32>("undershirtcolor")), (Color)TShock.Utils.DecodeColor(reader.Get<Int32>("shoecolor")),
-                           (Color)TShock.Utils.DecodeColor(reader.Get<Int32>("skincolor")), (Color)TShock.Utils.DecodeColor(reader.Get<Int32>("eyecolor"))
-                           );
-                         SSCInventorylist.Add(rec);
+                           (Color)TShock.Utils.DecodeColor(reader.Get<Int32>("skincolor")), (Color)TShock.Utils.DecodeColor(reader.Get<Int32>("eyecolor")), isPlaying);
+  
+                        SSCInventorylist.Add(rec);
                         return SSCInventorylist;
                     }
                 }
@@ -1008,9 +1041,15 @@ namespace extraAdminREST
         public Color ShoeColor { get; set; }
         public Color SkinColor { get; set; }
         public Color EyeColor { get; set; }
+        public Int32 Health { get; set; }
+        public Int32 MaxHealth { get; set; }
+        public Int32 Mana { get; set; }
+        public Int32 MaxMana { get; set; }
+        public Int32 QuestsCompleted { get; set; }
+        public Boolean IsPlaying { get; set; }
 
-        public SSCInventory(Int32 id, string inventory, Int32 hair, Int32 hairdye, Color haircolor,
-            Color pantscolor, Color shirtcolor, Color undershirtcolor, Color shoecolor, Color skincolor, Color eyecolor)
+        public SSCInventory(Int32 id, Int32 health, Int32 maxhealth, Int32 mana, Int32 maxmana, Int32 questscompleted, string inventory, Int32 hair, Int32 hairdye, Color haircolor,
+            Color pantscolor, Color shirtcolor, Color undershirtcolor, Color shoecolor, Color skincolor, Color eyecolor, Boolean isplaying)
         {
             Id = id;
             Inventory = inventory;
@@ -1023,6 +1062,12 @@ namespace extraAdminREST
             ShoeColor = shoecolor;
             SkinColor = skincolor;
             EyeColor = eyecolor;
+            Health = health;
+            MaxHealth = maxhealth;
+            Mana = mana;
+            MaxMana = maxmana;
+            QuestsCompleted = questscompleted;
+            IsPlaying = isplaying;
         }
 
         public SSCInventory()
@@ -1031,14 +1076,19 @@ namespace extraAdminREST
             Inventory = string.Empty;
             Hair = 0;
             HairDye = 0;
-            HairColor = new Color(0,0,0);
+            HairColor = new Color(0, 0, 0);
             PantsColor = new Color(0, 0, 0);
             ShirtColor = new Color(0, 0, 0);
             UnderShirtColor = new Color(0, 0, 0);
             ShoeColor = new Color(0, 0, 0);
             SkinColor = new Color(0, 0, 0);
             EyeColor = new Color(0, 0, 0);
-
+            Health = 0;
+            MaxHealth = 0;
+            Mana = 0;
+            MaxMana = 0;
+            QuestsCompleted = 0;
+            IsPlaying = false;
         }
     }
     public class UserList
