@@ -88,6 +88,7 @@ namespace extraAdminREST
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/searchusers", searchUsers, "AdminRest.allow"));
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/updateInventory", updateInventory, "AdminRest.allow"));
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/updateSSCAccount", updateSSCAccount, "AdminRest.allow"));
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/insertSSCAccount", insertSSCAccount, "AdminRest.allow"));
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/userlist", UserList, "AdminRest.allow"));
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/getInventory", getInventory, "AdminRest.allow"));
 
@@ -497,7 +498,6 @@ namespace extraAdminREST
             }
             else
             {
-                Console.WriteLine(configFilePath);
                 return new RestObject("400") { Response = "Invalid file path" };
             }
             return new RestObject() { Response = "config.json saved." };
@@ -571,12 +571,49 @@ namespace extraAdminREST
 
             bool ok = ModifySSCInventory(userId, inventory);
             if (ok)
-                return new RestObject { { "update", inventory } };
+                return new RestObject { { "response", inventory } };
             else
                 return new RestObject("400") { Response = "Update failure." };
 
         }
 
+        public static RestObject insertSSCAccount(RestRequestArgs args)
+        {
+            if (string.IsNullOrWhiteSpace(args.Parameters["account"]))
+                return new RestObject("400") { Response = "Invalid account." };
+            int userId = Convert.ToInt32(args.Parameters["account"]);
+            if (userId <= 0)
+            {
+                return new RestObject("400") { Response = "Invalid account." };
+            }
+
+            if (string.IsNullOrWhiteSpace(args.Parameters["insert"]))
+                return RestMissingParam("insert");
+            string insert = Convert.ToString(args.Parameters["insert"]);
+            if (insert == null)
+            {
+                return new RestObject("400") { Response = "Invalid insert." };
+            }
+
+            TShockAPI.DB.User user = TShock.Users.GetUserByID(userId);
+            foreach (var player in TShock.Players.Where(p => null != p && p.UserAccountName == user.Name))
+            {
+                return new RestObject("400") { Response = "Player active, Account may not be changed." };
+            }
+
+            try
+            {
+                var reader = TShock.DB.Query(insert);
+            }
+            catch (Exception ex)
+            {
+                TShock.Log.Error(ex.ToString());
+                Console.WriteLine(ex.StackTrace);
+               return new RestObject("400") { Response = "insert failure." };
+            }
+
+            return new RestObject { { "response", "Successful" } };
+        }
         public static RestObject updateSSCAccount(RestRequestArgs args)
         {
             if (string.IsNullOrWhiteSpace(args.Parameters["account"]))
@@ -603,7 +640,7 @@ namespace extraAdminREST
 
             bool ok = ModifySSCAccount(userId, update);
             if (ok)
-                return new RestObject { { "update", "Successful" } };
+                return new RestObject { { "response", "Successful" } };
             else
                 return new RestObject("400") { Response = "Update failure." };
 
