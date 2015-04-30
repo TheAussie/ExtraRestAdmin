@@ -500,7 +500,7 @@ namespace extraAdminREST
             {
                 return new RestObject("400") { Response = "Invalid file path" };
             }
-            return new RestObject() { Response = configFile + " saved." };
+            return new RestObject() { Response = "config.json saved." };
 
         }
 
