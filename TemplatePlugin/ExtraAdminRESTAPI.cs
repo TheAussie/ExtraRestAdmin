@@ -66,6 +66,7 @@ namespace extraAdminREST
         public static ConfigFile Config;
 
         public static ServerSideConfig ServerSideCharacterConfig;
+        private static Config chatConfig;
 
         public override void Initialize()
         {
@@ -75,6 +76,7 @@ namespace extraAdminREST
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/Chat", Chat, "AdminRest.allow"));
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/getPlayerData", getPlayerData, "AdminRest.allow"));
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/GroupList", GroupList, "AdminRest.allow"));
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/GroupUpdate", GroupUpdate, "AdminRest.allow"));
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/PlayerList", PlayerList, "AdminRest.allow"));
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/BanList", BanList, "AdminRest.allow"));
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/WorldInfo", WorldInfo, "AdminRest.allow"));
@@ -91,14 +93,23 @@ namespace extraAdminREST
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/insertSSCAccount", insertSSCAccount, "AdminRest.allow"));
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/userlist", UserList, "AdminRest.allow"));
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/getInventory", getInventory, "AdminRest.allow"));
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/getWhiteList", getWhiteList, "AdminRest.config"));
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/updateWhiteList", updateWhiteList, "AdminRest.config"));
+
+            ServerApi.Hooks.GameInitialize.Register(this, OnGameInitialize);
 
             // stuff augmented from TShock RestApi
 
             //  
             FileTools.SetupConfig();
+ 
 
         }
-
+        private void OnGameInitialize(EventArgs args)
+        {
+            var path = Path.Combine(TShock.SavePath, "chatConfig.json");
+            (chatConfig = extraAdminREST.Config.Read(path)).Write(path);
+        }
         private object Broadcast(RestRequestArgs args)
         {
             if (string.IsNullOrWhiteSpace(args.Parameters["msg"]))
@@ -312,6 +323,31 @@ namespace extraAdminREST
         }
 
 
+        private object GroupUpdate(RestRequestArgs args)
+        {
+            var ret = GroupFind(args.Parameters);
+            if (ret is RestObject)
+                return ret;
+
+            TShockAPI.Group group = (TShockAPI.Group)ret;
+            var parent = (null == args.Parameters["parent"]) ? group.ParentName : args.Parameters["parent"];
+            var chatcolor = (null == args.Parameters["chatcolor"]) ? string.Format("{0}.{1}.{2}", group.R, group.G, group.B) : args.Parameters["chatcolor"];
+            var permissions = (null == args.Parameters["permissions"]) ? group.Permissions : args.Parameters["permissions"];
+            var prefix = (null == args.Parameters["prefix"]) ? group.Prefix : args.Parameters["prefix"];
+            var suffix = (null == args.Parameters["suffix"]) ? group.Suffix : args.Parameters["suffix"];
+            try
+            {
+                TShock.Groups.UpdateGroup(group.Name, parent, permissions, chatcolor, suffix, prefix);
+            }
+            catch (Exception e)
+            {
+                return RestError(e.Message);
+            }
+
+            return RestResponse("Group '" + group.Name + "' updated successfully");
+        }
+
+
         private object getLog(RestRequestArgs args)
         {
             if (string.IsNullOrWhiteSpace(args.Parameters["count"]))
@@ -505,6 +541,60 @@ namespace extraAdminREST
         }
 
 
+        public static RestObject getWhiteList(RestRequestArgs args)
+        {
+            string[] whitelist = null;
+            String configFilePath = Path.Combine(TShock.SavePath, "whitelist.txt");
+
+            if (!File.Exists(configFilePath))
+            {
+                return new RestObject("400") { Response = "Invalid file path" };
+            }
+
+            String f = Path.Combine(TShock.SavePath, "whitelist.txt");
+            //          Console.WriteLine(f);
+
+            if (File.Exists(f))
+            {
+                whitelist = File.ReadAllLines(f);
+            }
+            return new RestObject()
+			{
+				 { "whitelist", whitelist }
+			};
+        }
+
+
+        public static RestObject updateWhiteList(RestRequestArgs args)
+        {
+            if (string.IsNullOrWhiteSpace(args.Parameters["whitelist"]))
+                return new RestObject("400") { Response = "No config given" };
+            String whitelist = args.Parameters["whitelist"];
+            if (whitelist == null)
+            {
+                return new RestObject("400") { Response = "No whitelist given" };
+            }
+
+            String configFilePath = Path.Combine(TShock.SavePath, "whitelist.txt");
+
+            if (!File.Exists(configFilePath))
+            {
+                return new RestObject("400") { Response = "Invalid file path" };
+            }
+
+            String f = Path.Combine(TShock.SavePath, "whitelist.txt");
+
+            if (File.Exists(f))
+            {
+                File.WriteAllText(f, whitelist);
+            }
+            return new RestObject()
+			{
+				 { "whitelist", whitelist }
+			};
+
+        }
+
         public static RestObject updateMOTD(RestRequestArgs args)
         {
             if (string.IsNullOrWhiteSpace(args.Parameters["motd"]))
@@ -655,6 +745,9 @@ namespace extraAdminREST
             return new RestObject()
 			{
 				 { "version", Assembly.GetExecutingAssembly().GetName().Version.ToString() },
+                 {"chatPort", chatConfig.chatPort},
+                 {"chatOn", chatConfig.chatOn},
+                 {"ipServer", chatConfig.ipServer},
 				{ "db", dbType }
 			};
 
@@ -699,6 +792,7 @@ namespace extraAdminREST
         {
             if (disposing)
             {
+                ServerApi.Hooks.GameInitialize.Deregister(this, OnGameInitialize);
             }
             base.Dispose(disposing);
         }
