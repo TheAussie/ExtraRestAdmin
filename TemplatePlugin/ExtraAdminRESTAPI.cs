@@ -66,7 +66,7 @@ namespace extraAdminREST
         public static ConfigFile Config;
 
         public static ServerSideConfig ServerSideCharacterConfig;
-        private static Config chatConfig;
+        private static Config chatConfig = new Config();
 
         public override void Initialize()
         {
@@ -96,20 +96,15 @@ namespace extraAdminREST
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/getWhiteList", getWhiteList, "AdminRest.config"));
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/updateWhiteList", updateWhiteList, "AdminRest.config"));
 
-            ServerApi.Hooks.GameInitialize.Register(this, OnGameInitialize);
-
             // stuff augmented from TShock RestApi
 
             //  
             FileTools.SetupConfig();
- 
+            var ConfigPath = Path.Combine(TShock.SavePath, "chatConfig.json");
+            chatConfig = extraAdminREST.Config.Read(ConfigPath);
 
         }
-        private void OnGameInitialize(EventArgs args)
-        {
-            var path = Path.Combine(TShock.SavePath, "chatConfig.json");
-            (chatConfig = extraAdminREST.Config.Read(path)).Write(path);
-        }
+
         private object Broadcast(RestRequestArgs args)
         {
             if (string.IsNullOrWhiteSpace(args.Parameters["msg"]))
@@ -792,7 +787,6 @@ namespace extraAdminREST
         {
             if (disposing)
             {
-                ServerApi.Hooks.GameInitialize.Deregister(this, OnGameInitialize);
             }
             base.Dispose(disposing);
         }

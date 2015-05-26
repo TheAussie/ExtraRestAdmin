@@ -23,9 +23,14 @@ namespace extraAdminREST
 
 		public static Config Read(string path)
 		{
-			return !File.Exists(path)
-				? new Config()
-				: JsonConvert.DeserializeObject<Config>(File.ReadAllText(path));
+            Config c;
+            try {
+                c = JsonConvert.DeserializeObject<Config>(File.ReadAllText(path));
+            }
+            catch {
+                c = new Config();
+            }
+            return c;
 		}
 	}
 }
