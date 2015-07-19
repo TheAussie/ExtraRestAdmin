@@ -15,7 +15,7 @@ namespace extraAdminREST
         public int chatPort = 25565;
         public bool chatOn = false;
         public string consoleName = "Console";
-        public string ipServer = Terraria.Netplay.serverListenIP.ToString();
+        public string ipServer = Terraria.Netplay.ServerIP.ToString();
 		public void Write(string path)
 		{
 			File.WriteAllText(path, JsonConvert.SerializeObject(this, Formatting.Indented));

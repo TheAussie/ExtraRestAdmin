@@ -29,8 +29,6 @@ using System.ComponentModel;
 using System.Text;
 using System.Text.RegularExpressions;
 
-using Mono.Data.Sqlite;
-using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Net;
@@ -39,7 +37,7 @@ using TShockAPI.ServerSideCharacters;
 
 namespace extraAdminREST
 {
-    [ApiVersion(1, 17)]
+    [ApiVersion(1, 19)]
     public class ExtraAdminREST : TerrariaPlugin
     {
         public static string SavePath = "tshock";
@@ -95,7 +93,8 @@ namespace extraAdminREST
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/getInventory", getInventory, "AdminRest.allow"));
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/getWhiteList", getWhiteList, "AdminRest.config"));
             TShock.RestApi.Register(new SecureRestCommand("/AdminREST/updateWhiteList", updateWhiteList, "AdminRest.config"));
-
+            TShock.RestApi.Register(new SecureRestCommand("/AdminREST/updateWhiteList", updateWhiteList, "AdminRest.config"));
+           
             // stuff augmented from TShock RestApi
 
             //  
@@ -104,7 +103,7 @@ namespace extraAdminREST
             chatConfig = extraAdminREST.Config.Read(ConfigPath);
 
         }
-
+ 
         private object Broadcast(RestRequestArgs args)
         {
             if (string.IsNullOrWhiteSpace(args.Parameters["msg"]))
@@ -419,7 +418,7 @@ namespace extraAdminREST
 			{
 				{"index", player.Index},
 				{"nickname", player.Name},
-				{"username", null == player.UserAccountName ? "" : player.UserAccountName},
+				{"username", null == player.User.Name ? "" : player.User.Name},
 				{"group", player.Group.Name},
 				{"inventory", string.Join(", ", inventory.Select(p => (p.name + ":" + p.stack + ":" + p.prefix)))},
 				{"armor", string.Join(", ", equipment.Select(p => (p.netID + ":" + p.prefix)))},
@@ -649,7 +648,7 @@ namespace extraAdminREST
             }
 
             TShockAPI.DB.User user = TShock.Users.GetUserByID(userId);
-            foreach (var player in TShock.Players.Where(p => null != p && p.UserAccountName == user.Name))
+            foreach (var player in TShock.Players.Where(p => null != p && p.User.Name == user.Name))
             {
                 return new RestObject("400") { Response = "Player active, inventory may not be changed." };
             }
@@ -681,7 +680,7 @@ namespace extraAdminREST
             }
 
             TShockAPI.DB.User user = TShock.Users.GetUserByID(userId);
-            foreach (var player in TShock.Players.Where(p => null != p && p.UserAccountName == user.Name))
+            foreach (var player in TShock.Players.Where(p => null != p && p.User.Name == user.Name))
             {
                 return new RestObject("400") { Response = "Player active, Account may not be changed." };
             }
@@ -718,7 +717,7 @@ namespace extraAdminREST
             }
 
             TShockAPI.DB.User user = TShock.Users.GetUserByID(userId);
-            foreach (var player in TShock.Players.Where(p => null != p && p.UserAccountName == user.Name))
+            foreach (var player in TShock.Players.Where(p => null != p && p.User.Name == user.Name))
             {
                 return new RestObject("400") { Response = "Player active, Account may not be changed." };
             }
@@ -903,8 +902,8 @@ namespace extraAdminREST
 					{"nickname", tsPlayer.Name},
 					{"index", tsPlayer.Index},
 					{"ip", tsPlayer.IP},
-					{"username", tsPlayer.UserAccountName ?? ""},
-					{"account", tsPlayer.UserID},
+					{"username", tsPlayer.User.Name ?? ""},
+					{"account", tsPlayer.User.ID},
 					{"group", tsPlayer.Group.Name},
 					{"active", tsPlayer.Active},
 					{"state", tsPlayer.State},
@@ -1014,7 +1013,7 @@ namespace extraAdminREST
                     if (reader.Read())
                     {
                             TShockAPI.DB.User user = TShock.Users.GetUserByID(account);
-                            foreach (var player in TShock.Players.Where(p => null != p && p.UserAccountName == user.Name))
+                            foreach (var player in TShock.Players.Where(p => null != p && p.User.Name == user.Name))
                             {
                                 isPlaying = true;
                             }
