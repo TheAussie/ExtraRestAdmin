@@ -37,7 +37,7 @@ using TShockAPI.ServerSideCharacters;
 
 namespace extraAdminREST
 {
-    [ApiVersion(1, 21)]
+    [ApiVersion(1, 23)]
     public class ExtraAdminREST : TerrariaPlugin
     {
         public static string SavePath = "tshock";
